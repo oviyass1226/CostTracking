@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios';
+import { Calendar, PieChart, TrendingUp, TrendingDown, AlertCircle, CheckCircle2, RefreshCw, BarChart3, Target } from 'lucide-react';
 
 const Reports = () => {
     const [month, setMonth] = useState(new Date().getMonth() + 1);
@@ -23,98 +24,180 @@ const Reports = () => {
         }
     };
 
-
-
     return (
-        <div className="space-y-6">
-            <div className="card">
-                <h2 className="text-2xl font-bold mb-4">Monthly Report</h2>
-                <div className="flex gap-4 mb-6">
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Month</label>
-                        <input
-                            type="number"
-                            min="1" max="12"
-                            className="input-field w-20"
+        <div className="space-y-8 animate-in fade-in duration-500">
+            <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                    <h1 className="text-2xl font-bold text-text tracking-tight">Intelligence Audit</h1>
+                    <p className="text-text-muted text-sm font-medium mt-1">Variance analysis and performance metrics for fiscal timelines.</p>
+                </div>
+                
+                <div className="flex items-center gap-2 bg-white p-2 rounded-saas border border-border shadow-sm">
+                    <div className="flex items-center px-2 gap-2 text-primary">
+                        <Calendar size={15} />
+                        <select 
+                            className="bg-transparent text-text text-[11px] font-black outline-none cursor-pointer uppercase tracking-widest"
                             value={month}
-                            onChange={(e) => setMonth(e.target.value)}
-                        />
+                            onChange={(e) => setMonth(Number(e.target.value))}
+                        >
+                            {Array.from({length: 12}, (_, i) => i + 1).map(m => (
+                                <option key={m} value={m} className="bg-white">{new Date(2000, m - 1).toLocaleString('default', { month: 'long' })}</option>
+                            ))}
+                        </select>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Year</label>
-                        <input
-                            type="number"
-                            className="input-field w-24"
-                            value={year}
-                            onChange={(e) => setYear(e.target.value)}
-                        />
+                    <div className="w-px h-5 bg-border"></div>
+                    <input
+                        type="number"
+                        className="bg-transparent text-text text-[11px] font-black outline-none w-20 px-3 tracking-widest"
+                        value={year}
+                        onChange={(e) => setYear(Number(e.target.value))}
+                    />
+                    <button 
+                        onClick={fetchData} 
+                        className="p-1.5 text-text-muted hover:text-primary transition-colors ml-2"
+                        title="Reload Metrics"
+                    >
+                        <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+                    </button>
+                </div>
+            </header>
+
+            <div className="grid md:grid-cols-3 gap-6">
+                <div className="card shadow-md group hover:border-error/20 transition-all">
+                    <div className="flex items-center justify-between mb-5">
+                        <p className="text-[11px] font-black uppercase tracking-widest text-text-muted opacity-60">Outflow Intensity</p>
+                        <div className="p-2 bg-error/5 rounded-saas text-error border border-error/10">
+                            <TrendingDown size={15} />
+                        </div>
                     </div>
-                    <button onClick={fetchData} className="btn-primary w-auto self-end">Refresh</button>
+                    <p className="text-2xl font-black text-text tracking-tighter">₹{Number(report.total_spent).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+                    <div className="mt-3 pt-3 border-t border-border flex items-center gap-2 text-[10px] text-text-muted font-black uppercase tracking-widest">
+                        <div className="w-1.5 h-1.5 rounded-full bg-error animate-pulse"></div> Gross Utilization
+                    </div>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-6">
-                    <div className="bg-gray-800 p-4 rounded-lg">
-                        <h3 className="text-lg font-semibold mb-2 text-gray-400">Total Spending</h3>
-                        <p className="text-4xl font-bold text-white">₹{Number(report.total_spent).toFixed(2)}</p>
+                <div className="card shadow-md group hover:border-primary/20 transition-all">
+                    <div className="flex items-center justify-between mb-5">
+                        <p className="text-[11px] font-black uppercase tracking-widest text-text-muted opacity-60">Ceiling Allocation</p>
+                        <div className="p-2 bg-primary/5 rounded-saas text-primary border border-primary/10">
+                            <Target size={15} />
+                        </div>
                     </div>
-                    <div className="bg-gray-800 p-4 rounded-lg">
-                        <h3 className="text-lg font-semibold mb-2 text-gray-400">Total Budget</h3>
-                        <p className="text-4xl font-bold text-blue-400">
-                            ${Number(report.total_budget).toFixed(2)}
-                        </p>
+                    <p className="text-2xl font-black text-text tracking-tighter">₹{Number(report.total_budget).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+                    <div className="mt-3 pt-3 border-t border-border flex items-center gap-2 text-[10px] text-text-muted font-black uppercase tracking-widest">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary/30"></div> Strategy Target
+                    </div>
+                </div>
+
+                <div className="card shadow-md group hover:border-success/20 transition-all">
+                    <div className="flex items-center justify-between mb-5">
+                        <p className="text-[11px] font-black uppercase tracking-widest text-text-muted opacity-60">Variance Surplus</p>
+                        <div className={`p-2 rounded-saas border ${report.total_remaining < 0 ? 'bg-error/5 text-error border-error/10' : 'bg-success/5 text-success border-success/10'}`}>
+                            <TrendingUp size={15} />
+                        </div>
+                    </div>
+                    <p className={`text-2xl font-black tracking-tighter ${report.total_remaining < 0 ? 'text-error' : 'text-success'}`}>
+                        ₹{Number(report.total_remaining).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </p>
+                    <div className="mt-3 pt-3 border-t border-border flex items-center gap-2 text-[10px] text-text-muted font-black uppercase tracking-widest">
+                        <div className={`w-1.5 h-1.5 rounded-full ${report.total_remaining < 0 ? 'bg-error' : 'bg-success animate-pulse'}`}></div> Status Outcome
                     </div>
                 </div>
             </div>
 
-            <div className="card">
-                <h3 className="text-xl font-bold mb-4">Category Breakdown & Budget Comparison</h3>
-                {loading ? <p>Loading...</p> : (
+            <section className="card p-0! overflow-hidden shadow-sm">
+                <div className="px-6 py-4 border-b border-border bg-background/50 flex items-center justify-between">
+                    <h3 className="text-[11px] font-black text-text uppercase tracking-widest flex items-center gap-2.5">
+                        <BarChart3 className="text-primary" size={18} />
+                        Performance Matrix
+                    </h3>
+                    <div className="px-2 py-1 bg-white border border-border rounded text-[9px] font-black text-text-muted uppercase tracking-tighter">
+                        Category Wise Audit
+                    </div>
+                </div>
+
+                {loading ? (
+                    <div className="py-24 flex flex-col items-center justify-center space-y-4">
+                        <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-[10px] font-black text-primary uppercase tracking-widest animate-pulse">Recalibrating Matrix...</p>
+                    </div>
+                ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="border-b border-gray-700 text-gray-400">
-                                    <th className="p-3">Category</th>
-                                    <th className="p-3 text-right">Spent</th>
-                                    <th className="p-3 text-right">Budget</th>
-                                    <th className="p-3 text-right">Remaining</th>
-                                    <th className="p-3">Status</th>
+                        <table className="w-full text-left">
+                            <thead className="bg-background border-b border-border">
+                                <tr>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-text-muted">Target Portfolio</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-text-muted text-right">Actual Outflow</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-text-muted text-right">Guidelines</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-text-muted text-right">Net Gap</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-text-muted text-center w-40">Status Index</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y divide-border">
                                 {report.byCategory.map((cat, index) => {
                                     const budgetAmount = Number(cat.budget_limit) || 0;
                                     const spent = Number(cat.total_spent) || 0;
                                     const remaining = Number(cat.remaining_budget) || 0;
                                     const isOverBudget = budgetAmount > 0 && spent > budgetAmount;
+                                    const percentage = budgetAmount > 0 ? Math.min((spent / budgetAmount) * 100, 100) : 0;
 
                                     return (
-                                        <tr key={index} className="border-b border-gray-800 hover:bg-gray-800">
-                                            <td className="p-3 font-medium">{cat.name}</td>
-                                            <td className="p-3 text-right text-red-400 font-mono">₹{spent.toFixed(2)}</td>
-                                            <td className="p-3 text-right text-blue-400 font-mono">{budgetAmount > 0 ? `₹${budgetAmount.toFixed(2)}` : '-'}</td>
-                                            <td className={`p-3 text-right font-mono ${remaining < 0 ? 'text-red-500' : 'text-green-500'}`}>
-                                                {budgetAmount > 0 ? `₹${remaining.toFixed(2)}` : '-'}
+                                        <tr key={index} className="hover:bg-background transition-colors group">
+                                            <td className="px-6 py-6">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-10 h-10 rounded-saas bg-background border border-border flex items-center justify-center text-primary font-black text-xs uppercase shadow-sm group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                                                        {cat.name[0]}
+                                                    </div>
+                                                    <span className="text-sm font-bold text-text group-hover:text-primary transition-colors">{cat.name}</span>
+                                                </div>
                                             </td>
-                                            <td className="p-3">
-                                                {budgetAmount > 0 ? (
-                                                    isOverBudget ?
-                                                        <span className="bg-red-900 text-red-200 text-xs px-2 py-1 rounded">Over Budget</span> :
-                                                        <span className="bg-green-900 text-green-200 text-xs px-2 py-1 rounded">Within Budget</span>
-                                                ) : <span className="text-gray-500 text-xs">No Budget</span>}
+                                            <td className="px-6 py-6 text-right font-black text-error text-sm">₹{spent.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                            <td className="px-6 py-6 text-right font-bold text-text-muted text-sm opacity-60">
+                                                {budgetAmount > 0 ? `₹${budgetAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
+                                            </td>
+                                            <td className={`px-6 py-6 text-right font-black text-sm ${remaining < 0 ? 'text-error' : 'text-success'}`}>
+                                                {budgetAmount > 0 ? `₹${remaining.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : 'AD-HOC'}
+                                            </td>
+                                            <td className="px-6 py-6">
+                                                <div className="flex flex-col items-center gap-2">
+                                                    {budgetAmount > 0 ? (
+                                                        <>
+                                                            <div className="w-full h-1.5 bg-background rounded-full overflow-hidden border border-border p-px">
+                                                                <div 
+                                                                    className={`h-full transition-all duration-1000 rounded-full ${isOverBudget ? 'bg-error' : 'bg-primary shadow-[0_0_8px_rgba(37,99,235,0.2)]'}`}
+                                                                    style={{ width: `${percentage}%` }}
+                                                                ></div>
+                                                            </div>
+                                                            {isOverBudget ? (
+                                                                <span className="flex items-center gap-1.5 text-[9px] font-black text-error uppercase tracking-tighter">
+                                                                    <AlertCircle size={10} /> CRITICAL DEFICIT
+                                                                </span>
+                                                            ) : (
+                                                                <span className="flex items-center gap-1.5 text-[9px] font-black text-success uppercase tracking-tighter">
+                                                                    <CheckCircle2 size={10} /> OPTIMAL
+                                                                </span>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-[9px] font-black text-text-muted uppercase opacity-40 italic tracking-widest">Unplanned</span>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     );
                                 })}
-                                {report.byCategory.length === 0 && (
-                                    <tr>
-                                        <td colSpan="5" className="p-4 text-center text-gray-500">No data available for this period.</td>
-                                    </tr>
-                                )}
                             </tbody>
                         </table>
                     </div>
                 )}
-            </div>
+                
+                {report.byCategory.length === 0 && !loading && (
+                    <div className="py-28 text-center opacity-30">
+                        <PieChart size={48} className="mx-auto mb-5 text-primary" />
+                        <p className="text-[11px] font-black uppercase tracking-widest">Zero analytical data for audit.</p>
+                    </div>
+                )}
+            </section>
         </div>
     );
 };

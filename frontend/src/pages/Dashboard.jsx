@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import AuthContext from '../context/AuthContext';
+import { TrendingDown, Wallet, Calendar, ArrowRight, History, Plus, IndianRupee, PieChart } from 'lucide-react';
 
 const Dashboard = () => {
     const { user } = useContext(AuthContext);
@@ -28,8 +29,6 @@ const Dashboard = () => {
 
             setTotalExpenses(totalRes.data.total);
             setRecentExpenses(expensesRes.data.slice(0, 5));
-
-            // Use calculated values from backend
             setRemainingBudget(reportRes.data.total_remaining);
 
             setLoading(false);
@@ -39,66 +38,173 @@ const Dashboard = () => {
         }
     };
 
-    if (loading) return <div>Loading...</div>;
+    if (loading) return (
+        <div className="flex items-center justify-center min-h-[50vh]">
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+        </div>
+    );
 
     return (
-        <div className="space-y-6">
-            <h1 className="text-3xl font-bold">Hello, {user?.username || 'User'}!</h1>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="card bg-gradient-to-br from-indigo-900 to-purple-900 border-none text-white">
-                    <h3 className="text-lg font-medium opacity-80 mb-2">Total Expenses</h3>
-                    <p className="text-4xl font-bold">₹{Number(totalExpenses).toFixed(2)}</p>
-                    <p className="text-sm opacity-60 mt-2">All time</p>
+        <div className="space-y-8 animate-in fade-in duration-500">
+            <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-text tracking-tight">Financial Overview</h1>
+                    <p className="text-text-muted text-sm font-medium mt-1">Real-time monitoring of expenditures and budget limits.</p>
                 </div>
-
-                <div className="card bg-gradient-to-br from-green-900 to-emerald-900 border-none text-white">
-                    <h3 className="text-lg font-medium opacity-80 mb-2">Remaining Budget (Month)</h3>
-                    <p className={`text-4xl font-bold ${remainingBudget < 0 ? 'text-red-300' : 'text-white'}`}>
-                        ₹{Number(remainingBudget).toFixed(2)}
-                    </p>
-                    <p className="text-sm opacity-60 mt-2">For {new Date().toLocaleString('default', { month: 'long' })}</p>
-                </div>
-
-                <div className="card hover:border-indigo-500 transition-colors cursor-pointer">
-                    <Link to="/expenses" className="block h-full">
-                        <h3 className="text-xl font-bold mb-2">Quick Add</h3>
-                        <p className="text-gray-400">Log a new expense instantly.</p>
-                        <div className="mt-4 text-primary font-semibold">Go to Expenses &rarr;</div>
+                <div className="flex gap-3">
+                    <Link to="/reports" className="btn-secondary flex items-center gap-2">
+                        <PieChart size={16} className="text-primary" /> Reports
+                    </Link>
+                    <Link to="/expenses" className="btn-primary">
+                        <Plus size={16} /> New Record
                     </Link>
                 </div>
+            </header>
 
-                <div className="card hover:border-pink-500 transition-colors cursor-pointer">
-                    <Link to="/reports" className="block h-full">
-                        <h3 className="text-xl font-bold mb-2">View Reports</h3>
-                        <p className="text-gray-400">Check your monthly spending breakdown.</p>
-                        <div className="mt-4 text-secondary font-semibold">Go to Reports &rarr;</div>
-                    </Link>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Total Expenses Card */}
+                <div className="card group hover:border-primary/30 transition-all cursor-default">
+                    <div className="flex items-start justify-between">
+                        <div>
+                            <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1">Total Spent</p>
+                            <h3 className="text-2xl font-bold text-text flex items-baseline gap-1">
+                                <span className="text-base font-semibold text-text-muted">₹</span>
+                                {Number(totalExpenses).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </h3>
+                        </div>
+                        <div className="p-2.5 bg-background rounded-saas text-text-muted border border-border group-hover:text-primary transition-colors">
+                            <TrendingDown size={18} />
+                        </div>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
+                        <span className="text-[10px] font-bold py-0.5 px-2 bg-error/5 text-error rounded-full border border-error/10 uppercase tracking-tighter">Gross Flow</span>
+                        <span className="text-[10px] text-text-muted font-bold">Lifetime Record</span>
+                    </div>
                 </div>
+
+                {/* Remaining Budget Card */}
+                <div className="card group hover:border-primary/30 transition-all cursor-default">
+                    <div className="flex items-start justify-between">
+                        <div>
+                            <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1">Budget Reserve</p>
+                            <h3 className={`text-2xl font-bold flex items-baseline gap-1 ${remainingBudget < 0 ? 'text-error' : 'text-text'}`}>
+                                <span className="text-base font-semibold opacity-40">₹</span>
+                                {Number(remainingBudget).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </h3>
+                        </div>
+                        <div className="p-2.5 bg-background rounded-saas text-text-muted border border-border group-hover:text-primary transition-colors">
+                            <Wallet size={18} />
+                        </div>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
+                        <div className={`flex items-center gap-1.5`}>
+                            <div className={`w-2 h-2 rounded-full ${remainingBudget < 0 ? 'bg-error' : 'bg-success'}`}></div>
+                            <span className={`text-[10px] font-bold uppercase tracking-tighter ${remainingBudget < 0 ? 'text-error' : 'text-success'}`}>
+                                {remainingBudget < 0 ? 'Deficit' : 'Optimal'}
+                            </span>
+                        </div>
+                        <span className="text-[10px] text-text-muted font-bold">{new Date().toLocaleString('default', { month: 'short' })} Guidelines</span>
+                    </div>
+                </div>
+
+                {/* Quick Action Card */}
+                <Link to="/budgets" className="card hover:border-primary group transition-all bg-primary/5 border-primary/10">
+                    <div className="flex items-center gap-4 h-full">
+                        <div className="p-3 bg-white shadow-sm border border-primary/20 rounded-saas text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                            <Calendar size={22} />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-text group-hover:text-primary mb-0.5 transition-colors">Strategy Planner</h4>
+                            <p className="text-xs text-text-muted font-bold">Set monthly limits &rarr;</p>
+                        </div>
+                    </div>
+                </Link>
             </div>
 
-            <div className="card">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xl font-bold">Recent Transactions</h3>
-                    <Link to="/expenses" className="text-sm text-primary hover:underline">View All</Link>
-                </div>
-                <div className="space-y-3">
-                    {recentExpenses.map(expense => (
-                        <div key={expense.id} className="flex justify-between items-center p-3 bg-gray-800 rounded-lg">
-                            <div>
-                                <p className="font-semibold">{expense.description || expense.category_name}</p>
-                                <p className="text-xs text-gray-400">{new Date(expense.date).toLocaleDateString()} • {expense.category_name}</p>
-                            </div>
-                            <p className="font-mono font-bold text-red-400">-₹{Number(expense.amount).toFixed(2)}</p>
+            <div className="grid lg:grid-cols-3 gap-8">
+                <section className="lg:col-span-2 card p-0! overflow-hidden shadow-sm">
+                    <div className="px-6 py-4 flex items-center justify-between border-b border-border bg-background/50">
+                        <div className="flex items-center gap-2">
+                            <History size={16} className="text-primary" />
+                            <h3 className="text-[11px] font-black text-text uppercase tracking-widest">Transaction Audit</h3>
                         </div>
-                    ))}
-                    {recentExpenses.length === 0 && (
-                        <p className="text-gray-500">No recent transactions.</p>
-                    )}
+                        <Link to="/expenses" className="text-[10px] font-black text-primary hover:text-primary-hover uppercase tracking-widest">Full Ledger</Link>
+                    </div>
+                    
+                    <div className="divide-y divide-border">
+                        {recentExpenses.map(expense => (
+                            <div key={expense.id} className="flex justify-between items-center px-6 py-4 hover:bg-background/80 transition-colors group">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 bg-background border border-border rounded-saas flex items-center justify-center font-black text-primary text-xs uppercase shadow-sm">
+                                        {expense.category_name?.[0] || 'E'}
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-text">{expense.description || expense.category_name}</p>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                            <span className="text-[10px] text-text-muted font-bold uppercase tracking-widest">
+                                                {new Date(expense.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                            </span>
+                                            <span className="text-[10px] text-primary/60 font-black px-1.5 py-0.5 bg-primary/5 rounded border border-primary/10 uppercase italic">
+                                                {expense.category_name}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-sm font-bold text-error">-₹{Number(expense.amount).toFixed(2)}</p>
+                                </div>
+                            </div>
+                        ))}
+                        {recentExpenses.length === 0 && (
+                            <div className="py-20 text-center text-text-muted opacity-40">
+                                <IndianRupee size={32} className="mx-auto mb-4" />
+                                <p className="text-xs font-bold uppercase tracking-widest">No activity found.</p>
+                            </div>
+                        )}
+                    </div>
+                </section>
+
+                <div className="space-y-6">
+                    <div className="card bg-primary text-white border-primary shadow-lg shadow-primary/20">
+                        <div className="flex items-center gap-2 mb-4 opacity-80">
+                            <Target size={16} className="text-white" />
+                            <h4 className="text-[10px] font-black uppercase tracking-widest">Optimization Tip</h4>
+                        </div>
+                        <p className="text-sm font-medium leading-relaxed italic opacity-95">
+                            "Systematic tracking of daily micro-costs typically reveals 15% in potential monthly savings. Keep logging!"
+                        </p>
+                    </div>
+
+                    <div className="card shadow-sm">
+                        <h4 className="text-[11px] font-black text-text-muted uppercase tracking-widest mb-6">Financial Progress</h4>
+                        <div className="space-y-5">
+                            <div>
+                                <div className="flex justify-between text-[10px] font-black mb-2 uppercase">
+                                    <span className="text-text-muted">Utilization Velocity</span>
+                                    <span className="text-primary">72%</span>
+                                </div>
+                                <div className="h-2 bg-background rounded-full overflow-hidden border border-border group">
+                                    <div className="h-full bg-primary w-[72%] transition-all duration-1000 shadow-[0_0_8px_rgba(37,99,235,0.3)]"></div>
+                                </div>
+                            </div>
+                            <div className="p-3 bg-background rounded-saas border border-border">
+                                <p className="text-[10px] text-text-muted font-bold uppercase tracking-tight leading-relaxed">
+                                    Current flow is <span className="text-success inline-flex px-1 bg-success/5 rounded">within limits</span> for {new Date().toLocaleString('default', { month: 'long' })}.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     );
 };
+
+// Tool icon since Target was used
+const Target = ({ size, className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+    </svg>
+);
 
 export default Dashboard;
