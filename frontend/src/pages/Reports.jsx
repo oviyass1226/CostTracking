@@ -7,6 +7,7 @@ const Reports = () => {
     const [year, setYear] = useState(new Date().getFullYear());
     const [report, setReport] = useState({ total_spent: 0, total_budget: 0, total_remaining: 0, byCategory: [] });
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         fetchData();
@@ -14,11 +15,13 @@ const Reports = () => {
 
     const fetchData = async () => {
         setLoading(true);
+        setError(null);
         try {
             const res = await api.get(`/reports/monthly?month=${month}&year=${year}`);
             setReport(res.data);
         } catch (err) {
             console.error(err);
+            setError("Communication failure: Unable to fetch data. Check your connection or database.");
         } finally {
             setLoading(false);
         }
@@ -116,7 +119,15 @@ const Reports = () => {
                     </div>
                 </div>
 
-                {loading ? (
+                {error ? (
+                    <div className="py-24 flex flex-col items-center justify-center space-y-4">
+                        <AlertCircle size={48} className="text-error opacity-80 animate-pulse" />
+                        <div className="text-center">
+                            <p className="text-[12px] font-black text-error uppercase tracking-widest">{error}</p>
+                            <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mt-2">Data retrieval halted.</p>
+                        </div>
+                    </div>
+                ) : loading ? (
                     <div className="py-24 flex flex-col items-center justify-center space-y-4">
                         <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></div>
                         <p className="text-[10px] font-black text-primary uppercase tracking-widest animate-pulse">Recalibrating Matrix...</p>
@@ -155,8 +166,8 @@ const Reports = () => {
                                             <td className="px-6 py-6 text-right font-bold text-text-muted text-sm opacity-60">
                                                 {budgetAmount > 0 ? `₹${budgetAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
                                             </td>
-                                            <td className={`px-6 py-6 text-right font-black text-sm ${remaining < 0 ? 'text-error' : 'text-success'}`}>
-                                                {budgetAmount > 0 ? `₹${remaining.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : 'AD-HOC'}
+                                            <td className={`px-6 py-6 text-right font-black text-sm ${budgetAmount > 0 ? (remaining < 0 ? 'text-error' : 'text-success') : 'text-text-muted opacity-40'}`}>
+                                                {budgetAmount > 0 ? `₹${remaining.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
                                             </td>
                                             <td className="px-6 py-6">
                                                 <div className="flex flex-col items-center gap-2">
@@ -179,7 +190,12 @@ const Reports = () => {
                                                             )}
                                                         </>
                                                     ) : (
-                                                        <span className="text-[9px] font-black text-text-muted uppercase opacity-40 italic tracking-widest">Unplanned</span>
+                                                        <div 
+                                                            className="inline-flex items-center justify-center px-3 py-1.5 border rounded shadow-sm text-[9px] font-black uppercase tracking-widest bg-white"
+                                                            style={{ color: 'var(--color-unbudgeted)', borderColor: 'var(--color-unbudgeted)' }}
+                                                        >
+                                                            Unbudgeted
+                                                        </div>
                                                     )}
                                                 </div>
                                             </td>
@@ -191,7 +207,7 @@ const Reports = () => {
                     </div>
                 )}
                 
-                {report.byCategory.length === 0 && !loading && (
+                {report.byCategory.length === 0 && !loading && !error && (
                     <div className="py-28 text-center opacity-30">
                         <PieChart size={48} className="mx-auto mb-5 text-primary" />
                         <p className="text-[11px] font-black uppercase tracking-widest">Zero analytical data for audit.</p>

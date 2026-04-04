@@ -7,6 +7,7 @@ const Expenses = () => {
     const { user } = useContext(AuthContext);
     const [expenses, setExpenses] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [categoryBudgets, setCategoryBudgets] = useState([]);
     const [formData, setFormData] = useState({
         amount: '',
         description: '',
@@ -21,9 +22,24 @@ const Expenses = () => {
     const [newCategory, setNewCategory] = useState('');
     const [showCategoryInput, setShowCategoryInput] = useState(false);
 
+    const [formError, setFormError] = useState(null);
+
     useEffect(() => {
         fetchData();
     }, []);
+
+    useEffect(() => {
+        const fetchBudgets = async () => {
+            if (!formData.date) return;
+            const parts = formData.date.split('-');
+            if(parts.length < 2) return;
+            try {
+                const res = await api.get(`/reports/monthly?month=${parseInt(parts[1], 10)}&year=${parseInt(parts[0], 10)}`);
+                setCategoryBudgets(res.data.byCategory || []);
+            } catch (err) {}
+        };
+        fetchBudgets();
+    }, [formData.date]);
 
     const fetchData = async () => {
         try {
@@ -53,7 +69,8 @@ const Expenses = () => {
             setNewCategory('');
             setShowCategoryInput(false);
         } catch (err) {
-            alert('Failed to add category');
+            setFormError('Failed to add category');
+            setTimeout(() => setFormError(null), 3500);
         }
     };
 
@@ -61,10 +78,23 @@ const Expenses = () => {
         e.preventDefault();
         try {
             const res = await api.post('/expenses', formData);
-            setExpenses([res.data, ...expenses]);
+            const selectedCategory = categories.find(c => String(c.id) === String(formData.category_id));
+            const newExpense = { ...res.data, category_name: selectedCategory?.name || '' };
+            setExpenses([newExpense, ...expenses]);
             setFormData({ ...formData, amount: '', description: '' });
+            setFormError(null);
+            
+            // refresh budgets after submit to recalculate the remaining
+            const parts = formData.date.split('-');
+            if(parts.length >= 2) {
+                api.get(`/reports/monthly?month=${parseInt(parts[1], 10)}&year=${parseInt(parts[0], 10)}`)
+                    .then(r => setCategoryBudgets(r.data.byCategory || []));
+            }
         } catch (err) {
-            alert('Failed to add expense');
+            const errorMessage = err.response?.data?.message || 'Failed to add expense';
+            setFormError(errorMessage);
+            setFormData({ ...formData, amount: '', description: '' });
+            setTimeout(() => setFormError(null), 3500);
         }
     };
 
@@ -73,6 +103,13 @@ const Expenses = () => {
         try {
             await api.delete(`/expenses/${id}`);
             setExpenses(expenses.filter(e => e.id !== id));
+            
+            // refresh budgets after delete
+            const parts = formData.date.split('-');
+            if(parts.length >= 2) {
+                api.get(`/reports/monthly?month=${parseInt(parts[1], 10)}&year=${parseInt(parts[0], 10)}`)
+                    .then(r => setCategoryBudgets(r.data.byCategory || []));
+            }
         } catch (err) {
             alert('Failed to delete record');
         }
@@ -91,6 +128,12 @@ const Expenses = () => {
             e.category_name?.toLowerCase().includes(searchQuery.toLowerCase())
         );
 
+    // Compute live warning
+    const selCat = categories.find(c => String(c.id) === String(formData.category_id));
+    const activeBudget = selCat ? categoryBudgets.find(b => b.name === selCat.name) : null;
+    const remaining = activeBudget && activeBudget.budget_limit !== null ? Number(activeBudget.remaining_budget) : null;
+    const isExceeding = remaining !== null && (remaining - Number(formData.amount || 0) < 0);
+
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             <header>
@@ -108,7 +151,14 @@ const Expenses = () => {
                         
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="space-y-1.5">
-                                <label className="label">Amount (INR)</label>
+                                <div className="flex justify-between items-center">
+                                    <label className="label">Amount (INR)</label>
+                                    {remaining !== null && (
+                                        <span className={`text-[9px] font-black uppercase tracking-widest ${remaining < 0 ? 'text-error' : 'text-success'}`}>
+                                            Remaining: ₹{remaining.toFixed(2)}
+                                        </span>
+                                    )}
+                                </div>
                                 <div className="relative group">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted transition-colors group-focus-within:text-primary pointer-events-none">
                                         <IndianRupee size={14} />
@@ -118,12 +168,17 @@ const Expenses = () => {
                                         name="amount"
                                         step="0.01"
                                         placeholder="0.00"
-                                        className="input-field pl-9 font-bold text-base"
+                                        className={`input-field pl-9 font-bold text-base transition-colors ${isExceeding ? 'border-error focus:border-error focus:ring-error/20 bg-error/5 text-error' : ''}`}
                                         value={formData.amount}
                                         onChange={handleInputChange}
                                         required
                                     />
                                 </div>
+                                {isExceeding && (
+                                    <p className="text-[10px] text-error font-bold mt-1 uppercase tracking-widest animate-pulse flex items-center gap-1">
+                                        ⚠️ Exceeds Limits by ₹{Math.abs(remaining - Number(formData.amount)).toFixed(2)}!
+                                    </p>
+                                )}
                             </div>
 
                             <div className="space-y-1.5">
@@ -184,6 +239,12 @@ const Expenses = () => {
                                     </div>
                                 )}
                             </div>
+
+                            {formError && (
+                                <div className="p-3 mb-2 rounded-saas bg-error/10 border border-error/20 text-error text-[11px] font-black uppercase tracking-widest animate-in fade-in slide-in-from-bottom-2">
+                                    {formError}
+                                </div>
+                            )}
 
                             <button type="submit" className="btn-primary w-full py-2.5 mt-2 font-black uppercase tracking-widest text-xs">
                                 Confirm Record

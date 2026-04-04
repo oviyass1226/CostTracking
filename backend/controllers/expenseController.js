@@ -4,6 +4,21 @@ const db = require('../config/db');
 exports.createExpense = async (req, res) => {
     const { category_id, amount, description, date } = req.body;
     try {
+        const parts = typeof date === 'string' ? date.split('T')[0].split('-') : [];
+        const year = parts.length === 3 ? parseInt(parts[0], 10) : new Date(date).getFullYear();
+        const month = parts.length === 3 ? parseInt(parts[1], 10) : new Date(date).getMonth() + 1;
+
+        const [budgetRows] = await db.execute(
+            'SELECT id FROM budgets WHERE user_id = ? AND category_id = ? AND month = ? AND year = ?',
+            [req.user.id, category_id, month, year]
+        );
+
+        console.log(`[DEBUG] createExpense - userId: ${req.user.id}, category: ${category_id}, date: ${date}, parsed month: ${month}, year: ${year}, budgetFound: ${budgetRows.length > 0}`);
+
+        if (budgetRows.length === 0) {
+            return res.status(400).json({ message: 'Please set a budget for this category before adding an expense for this period' });
+        }
+
         const expenseId = await Expense.create(req.user.id, category_id, amount, description, date);
         res.status(201).json({ id: expenseId, category_id, amount, description, date });
     } catch (error) {

@@ -44,7 +44,7 @@ const Budgets = () => {
         try {
             await api.post('/budgets', formData);
             fetchData();
-            setFormData({ ...formData, amount: '' });
+            setFormData({ ...formData, amount: '', category_id: '' });
         } catch (err) {
             alert('Failed to set budget');
         }

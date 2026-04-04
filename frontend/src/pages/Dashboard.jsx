@@ -9,6 +9,8 @@ const Dashboard = () => {
     const [totalExpenses, setTotalExpenses] = useState(0);
     const [recentExpenses, setRecentExpenses] = useState([]);
     const [remainingBudget, setRemainingBudget] = useState(0);
+    const [monthlyBudget, setMonthlyBudget] = useState(0);
+    const [monthlySpent, setMonthlySpent] = useState(0);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -30,6 +32,8 @@ const Dashboard = () => {
             setTotalExpenses(totalRes.data.total);
             setRecentExpenses(expensesRes.data.slice(0, 5));
             setRemainingBudget(reportRes.data.total_remaining);
+            setMonthlyBudget(reportRes.data.total_budget);
+            setMonthlySpent(reportRes.data.total_spent);
 
             setLoading(false);
         } catch (err) {
@@ -43,6 +47,9 @@ const Dashboard = () => {
             <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
         </div>
     );
+
+    const velocity = monthlyBudget > 0 ? Math.min(Math.round((monthlySpent / monthlyBudget) * 100), 100) : 0;
+    const isOverLimit = monthlySpent > monthlyBudget && monthlyBudget > 0;
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
@@ -181,15 +188,15 @@ const Dashboard = () => {
                             <div>
                                 <div className="flex justify-between text-[10px] font-black mb-2 uppercase">
                                     <span className="text-text-muted">Utilization Velocity</span>
-                                    <span className="text-primary">72%</span>
+                                    <span className={isOverLimit ? "text-error" : "text-primary"}>{velocity}%</span>
                                 </div>
                                 <div className="h-2 bg-background rounded-full overflow-hidden border border-border group">
-                                    <div className="h-full bg-primary w-[72%] transition-all duration-1000 shadow-[0_0_8px_rgba(37,99,235,0.3)]"></div>
+                                    <div className={`h-full transition-all duration-1000 ${isOverLimit ? 'bg-error shadow-[0_0_8px_rgba(239,68,68,0.3)]' : 'bg-primary shadow-[0_0_8px_rgba(37,99,235,0.3)]'}`} style={{ width: `${velocity}%` }}></div>
                                 </div>
                             </div>
                             <div className="p-3 bg-background rounded-saas border border-border">
                                 <p className="text-[10px] text-text-muted font-bold uppercase tracking-tight leading-relaxed">
-                                    Current flow is <span className="text-success inline-flex px-1 bg-success/5 rounded">within limits</span> for {new Date().toLocaleString('default', { month: 'long' })}.
+                                    Current flow is <span className={isOverLimit ? "text-error inline-flex px-1 bg-error/5 rounded" : "text-success inline-flex px-1 bg-success/5 rounded"}>{isOverLimit ? 'exceeding limits' : 'within limits'}</span> for {new Date().toLocaleString('default', { month: 'long' })}.
                                 </p>
                             </div>
                         </div>
